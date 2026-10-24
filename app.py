@@ -15,7 +15,7 @@ import csv
 import io
 from flask import (
     Flask, render_template, request, redirect,
-    url_for, flash, session, jsonify, abort, make_response
+    url_for, flash, session, jsonify, abort, make_response, send_from_directory
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -26,9 +26,20 @@ try:
 except ImportError:
     pass
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(
+    __name__,
+    static_folder=os.path.join(BASE_DIR, "static"),
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_url_path="/static"
+)
 app.secret_key = os.getenv("SECRET_KEY", "default-cloud-project-secret-key-2026")
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+@app.route('/static/<path:filename>')
+def serve_static_file(filename):
+    """Explicitly serve static assets (CSS, JS) with proper MIME types on Vercel."""
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), filename)
 
 # Database configuration from environment variables
 DB_HOST = os.getenv("DB_HOST", "localhost")
