@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import tempfile
 import secrets
 import time
 try:
@@ -43,7 +44,13 @@ DEFAULT_BORROW_DAYS = 14  # 14 days borrowing period
 
 # Active database engine tracking ('mysql' or 'sqlite')
 ACTIVE_DB_ENGINE = "mysql"
-SQLITE_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "library.db")
+
+# In serverless environments like Vercel, the root filesystem is read-only.
+# We automatically route SQLite to a writable temporary directory.
+if os.getenv("VERCEL") or os.getenv("NOW_REGION") or not os.access(os.path.dirname(os.path.abspath(__file__)), os.W_OK):
+    SQLITE_DB_PATH = os.path.join(tempfile.gettempdir(), "library.db")
+else:
+    SQLITE_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "library.db")
 
 
 # ==========================================================
@@ -434,7 +441,7 @@ def get_db_connection():
     """
     global ACTIVE_DB_ENGINE
 
-    if DB_TYPE == "sqlite" or pymysql is None:
+    if DB_TYPE == "sqlite" or pymysql is None or os.getenv("VERCEL"):
         ACTIVE_DB_ENGINE = "sqlite"
         raw_conn = sqlite3.connect(SQLITE_DB_PATH, timeout=10, isolation_level=None)
         raw_conn.row_factory = sqlite3.Row
@@ -2294,6 +2301,9 @@ def server_error(e):
 
 # Call DB seed initialization if DB is available
 init_db_seeds()
+
+# Export WSGI callable for Vercel Serverless Function
+handler = app
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))

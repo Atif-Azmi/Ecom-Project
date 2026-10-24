@@ -242,3 +242,20 @@ When presenting this project to your evaluators, emphasize how the application m
    - **Customer Journey:** Search $\rightarrow$ Product Evaluation (Ratings & Reviews) $\rightarrow$ Shopping Cart $\rightarrow$ Multi-item Order Checkout.
    - **Payment Simulation:** Simulated digital payment gateways (UPI apps, Credit/Debit cards) reflecting modern fintech workflows.
    - **Retention Mechanisms:** Wishlist functionality allowing students to bookmark future reading lists.
+
+---
+
+## 🌐 10. Deploying to Vercel (1-Click Deployment)
+
+This project includes ready-to-use **`vercel.json`** serverless configuration with automatic `/tmp` SQLite persistence.
+
+### Quick Deployment Steps:
+1. Log in to [Vercel](https://vercel.com) using your GitHub account.
+2. Click **"Add New..."** $\rightarrow$ **"Project"**.
+3. Import your repository: **`Atif-Azmi/Ecom-Project`**.
+4. In Project Settings:
+   - **Framework Preset:** Other (Vercel automatically detects `vercel.json` and Python `@vercel/python`).
+   - **Root Directory:** `./`
+5. Click **"Deploy"**!
+6. Within 1-2 minutes, your live cloud web URL will be generated (e.g. `https://ecom-project.vercel.app`).
+   - Demo accounts (`admin`, `student1`, `student2`, `student3`) and sample textbooks are seeded automatically on first visit!
