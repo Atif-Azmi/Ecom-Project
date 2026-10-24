@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Payment Receipt #REC-{{ record.id }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 720px; margin: 0 auto;">
+    <!-- Action Bar (Hidden when printing) -->
+    <div class="btn-print-hide" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <a href="{{ url_for('student_dashboard') }}" class="btn-neo-secondary small">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+        <button type="button" onclick="window.print()" class="btn-neo-primary">
+            <i class="bi bi-printer me-1"></i> Print / Download Invoice
+        </button>
+    </div>
+
+    <!-- Official Printable Receipt Document -->
+    <div class="neo-card receipt-box" style="padding: clamp(1.5rem, 4vw, 2.75rem); background: #ffffff;">
+        <!-- College Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e5e7eb; padding-bottom: 1.25rem; margin-bottom: 1.5rem;">
+            <div>
+                <span class="neo-chip neo-chip-available small mb-2" style="background: rgba(16, 185, 129, 0.12);">
+                    <span class="neo-chip-dot"></span>
+                    <span>Official E-Receipt &bull; Verified</span>
+                </span>
+                <h2 class="font-heading mb-0" style="font-size: 1.35rem; color: #111827;">College Library ERP Portal</h2>
+                <div class="text-secondary small">Campus Digital Textbook Circulation &amp; Fee Department</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="fw-bold font-heading" style="font-size: 1.15rem; color: #111827;">INVOICE / RECEIPT</div>
+                <div class="text-secondary small">Receipt No: <strong>REC-2026-{{ "%04d"|format(record.id) }}</strong></div>
+                <div class="text-secondary small">Date: <strong>{{ record.payment_date[:10] if record.payment_date else '2026-10-24' }}</strong></div>
+            </div>
+        </div>
+
+        <!-- Student & Transaction Info Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.75rem;">
+            <div>
+                <span class="text-secondary small fw-bold d-block mb-1" style="text-transform: uppercase; letter-spacing: 0.05em;">Student Billed:</span>
+                <div class="fw-bold" style="font-size: 1.05rem;">{{ record.full_name }}</div>
+                <div class="text-secondary small">Roll / Username: <code>{{ record.username }}</code></div>
+                <div class="text-secondary small">Email: {{ record.email }}</div>
+            </div>
+            <div style="text-align: right;">
+                <span class="text-secondary small fw-bold d-block mb-1" style="text-transform: uppercase; letter-spacing: 0.05em;">Transaction Status:</span>
+                <div>
+                    <span class="neo-chip neo-chip-available" style="padding: 0.25rem 0.75rem; font-weight: 700;">
+                        <span class="neo-chip-dot"></span> PAID IN FULL
+                    </span>
+                </div>
+                <div class="text-secondary small mt-1">Order Ref: <strong>{{ record.order_no or 'ORD-N/A' }}</strong></div>
+                <div class="text-secondary small" style="word-break: break-all;">Method: {{ record.payment_ref or 'Demo Gateway' }}</div>
+            </div>
+        </div>
+
+        <!-- Line Items Table -->
+        <div style="margin-bottom: 1.75rem; overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #e5e7eb; text-align: left;">
+                        <th style="padding: 0.75rem 0.5rem; color: #4b5563;">Description</th>
+                        <th style="padding: 0.75rem 0.5rem; color: #4b5563;">Timeline</th>
+                        <th style="padding: 0.75rem 0.5rem; text-align: center; color: #4b5563;">Days Late</th>
+                        <th style="padding: 0.75rem 0.5rem; text-align: right; color: #4b5563;">Amount (INR)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                        <td style="padding: 0.85rem 0.5rem;">
+                            <strong>Library Late Return Fee</strong>
+                            <div class="text-secondary small">{{ record.title }} (ISBN: {{ record.isbn }})</div>
+                        </td>
+                        <td style="padding: 0.85rem 0.5rem;" class="small text-secondary">
+                            Due: {{ record.due_date }}<br>
+                            Returned: {{ record.return_date or 'Settled' }}
+                        </td>
+                        <td style="padding: 0.85rem 0.5rem; text-align: center;">
+                            {{ days_overdue }} days
+                        </td>
+                        <td style="padding: 0.85rem 0.5rem; text-align: right; font-weight: bold;">
+                            Rs {{ "%.2f"|format(record.fine_amount) }}
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr style="border-top: 2px solid #111827;">
+                        <td colspan="3" style="padding: 1rem 0.5rem; font-weight: bold; font-size: 1rem;">
+                            TOTAL SETTLED:
+                        </td>
+                        <td style="padding: 1rem 0.5rem; text-align: right; font-weight: 800; font-size: 1.25rem; color: #065f46;">
+                            Rs {{ "%.2f"|format(record.fine_amount) }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Footer / Certification -->
+        <div style="border-top: 1px dashed #d1d5db; padding-top: 1.25rem; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div style="max-width: 360px;">
+                <p class="text-secondary small mb-1" style="font-size: 0.75rem;">
+                    * This computer-generated receipt serves as official proof of library fine payment. Please retain for your academic clearance.
+                </p>
+                <div class="text-secondary" style="font-size: 0.75rem;">System Timestamp: {{ record.payment_date or '2026-10-24 12:00:00' }}</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-family: 'Unbounded', sans-serif; font-size: 0.8rem; font-weight: bold; color: #374151; margin-bottom: 0.25rem;">
+                    Librarian Desk
+                </div>
+                <div style="width: 120px; border-bottom: 1px solid #9ca3af; margin: 0 auto 0.25rem auto;"></div>
+                <small class="text-secondary" style="font-size: 0.7rem;">Authorized Seal</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

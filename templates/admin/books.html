@@ -76,15 +76,20 @@
                             <td><code style="background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px;">{{ book.isbn }}</code></td>
                             <td><strong>{{ book.total_copies }}</strong></td>
                             <td>
-                                {% if book.available_copies > 0 %}
-                                    <span class="neo-chip neo-chip-available">
-                                        <span class="neo-chip-dot"></span>
-                                        <span>{{ book.available_copies }} in stock</span>
-                                    </span>
-                                {% else %}
+                                {% if book.available_copies == 0 %}
                                     <span class="neo-chip neo-chip-out-of-stock">
                                         <span class="neo-chip-dot"></span>
                                         <span>0 available</span>
+                                    </span>
+                                {% elif book.available_copies <= 2 %}
+                                    <span class="neo-chip neo-chip-low-stock" title="Low stock alert - reorder needed">
+                                        <span class="neo-chip-dot"></span>
+                                        <span>Low stock ({{ book.available_copies }} left)</span>
+                                    </span>
+                                {% else %}
+                                    <span class="neo-chip neo-chip-available">
+                                        <span class="neo-chip-dot"></span>
+                                        <span>{{ book.available_copies }} in stock</span>
                                     </span>
                                 {% endif %}
                             </td>

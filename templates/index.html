@@ -87,28 +87,60 @@
     <div class="book-grid">
         {% for book in books %}
             <div class="neo-card neo-card-interactive" style="display: flex; flex-direction: column; height: 100%; margin-bottom: 0;">
-                <!-- Top Category & Availability Status -->
+                <!-- Top Category, Low Stock / Availability Status, and Wishlist Button -->
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.85rem;">
-                    <span class="neo-chip">
-                        <span class="neo-chip-dot" style="background-color: var(--surface-dark);"></span>
-                        <span>{{ book.category }}</span>
-                    </span>
-                    {% if book.available_copies > 0 %}
-                        <span class="neo-chip neo-chip-available" title="Ready to borrow">
-                            <span class="neo-chip-dot"></span>
-                            <span>{{ book.available_copies }} available</span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center;">
+                        <span class="neo-chip">
+                            <span class="neo-chip-dot" style="background-color: var(--surface-dark);"></span>
+                            <span>{{ book.category }}</span>
                         </span>
-                    {% else %}
-                        <span class="neo-chip neo-chip-out-of-stock" title="All copies borrowed">
-                            <span class="neo-chip-dot"></span>
-                            <span>Out of stock</span>
-                        </span>
+
+                        {% if book.available_copies == 0 %}
+                            <span class="neo-chip neo-chip-out-of-stock" title="All copies currently on loan">
+                                <span class="neo-chip-dot"></span>
+                                <span>Out of stock</span>
+                            </span>
+                        {% elif book.available_copies <= 2 %}
+                            <span class="neo-chip neo-chip-low-stock" title="ERP Inventory Alert: Reorder recommended">
+                                <span class="neo-chip-dot"></span>
+                                <span>Low stock ({{ book.available_copies }} left)</span>
+                            </span>
+                        {% else %}
+                            <span class="neo-chip neo-chip-available" title="Ready to issue">
+                                <span class="neo-chip-dot"></span>
+                                <span>{{ book.available_copies }} available</span>
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Wishlist Toggle (for logged in students) -->
+                    {% if session.get('role') == 'student' %}
+                        <form action="{{ url_for('toggle_wishlist', book_id=book.id) }}" method="POST" style="margin: 0;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="next" value="{{ request.full_path }}">
+                            <button type="submit" class="btn-neo-secondary small" style="padding: 0.3rem 0.55rem; border-radius: 50%;"
+                                    title="{{ 'Remove from wishlist' if book.id in wishlist_ids else 'Save to wishlist' }}">
+                                <i class="bi {{ 'bi-heart-fill' if book.id in wishlist_ids else 'bi-heart' }}"
+                                   style="{{ 'color: var(--accent-red);' if book.id in wishlist_ids else '' }}"></i>
+                            </button>
+                        </form>
                     {% endif %}
                 </div>
 
-                <!-- Book Information -->
+                <!-- Star Ratings & Review Count -->
+                <div style="margin-bottom: 0.5rem;">
+                    <a href="{{ url_for('book_detail', book_id=book.id) }}" style="text-decoration: none;" class="star-rating-box">
+                        <span class="star-gold"><i class="bi bi-star-fill"></i></span>
+                        <strong style="color: var(--text-primary); font-size: 0.85rem;">{{ book.avg_rating or '5.0' }}</strong>
+                        <span class="text-secondary small">({{ book.review_count }} review{{ 's' if book.review_count != 1 else '' }})</span>
+                    </a>
+                </div>
+
+                <!-- Book Title & Author -->
                 <h4 style="font-size: 1.1rem; line-height: 1.35; margin-bottom: 0.35rem; overflow-wrap: anywhere;">
-                    {{ book.title }}
+                    <a href="{{ url_for('book_detail', book_id=book.id) }}" style="color: inherit; text-decoration: none;">
+                        {{ book.title }}
+                    </a>
                 </h4>
                 <p class="text-secondary small" style="margin-bottom: 1rem;">
                     <i class="bi bi-pen me-1"></i> {{ book.author }}
@@ -121,19 +153,31 @@
                         <div><small>Inventory: {{ book.total_copies }} total</small></div>
                     </div>
 
-                    <div>
+                    <div class="btn-row" style="gap: 0.4rem;">
+                        <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn-neo-secondary small" title="View details and reviews">
+                            Details
+                        </a>
+
                         {% if session.get('role') == 'student' %}
-                            {% if book.available_copies > 0 %}
-                                <form action="{{ url_for('borrow_book', book_id=book.id) }}" method="POST">
+                            {% if book.id in borrowed_ids %}
+                                <span class="neo-chip neo-chip-issued small" title="Currently on loan to you">
+                                    <span class="neo-chip-dot"></span> Borrowed
+                                </span>
+                            {% elif book.id in cart_ids %}
+                                <a href="{{ url_for('student_cart') }}" class="btn-neo-secondary small" style="color: var(--accent-blue);" title="View cart">
+                                    <i class="bi bi-cart-check-fill"></i> In Cart
+                                </a>
+                            {% elif book.available_copies > 0 %}
+                                <form action="{{ url_for('add_to_cart', book_id=book.id) }}" method="POST" style="margin: 0;">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn-neo-primary small"
-                                            onclick="return confirm('Borrow \'{{ book.title }}\' for 14 days?');">
-                                        <i class="bi bi-bookmark-plus"></i> Borrow
+                                    <input type="hidden" name="next" value="{{ request.full_path }}">
+                                    <button type="submit" class="btn-neo-primary small" title="Add to borrow cart">
+                                        <i class="bi bi-cart-plus"></i> Cart
                                     </button>
                                 </form>
                             {% else %}
                                 <button class="btn-neo-secondary small" disabled style="opacity: 0.6; cursor: not-allowed;">
-                                    Unavailable
+                                    Out of Stock
                                 </button>
                             {% endif %}
                         {% elif session.get('role') == 'admin' %}

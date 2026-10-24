@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}My Wishlist{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
+    <div>
+        <span class="neo-chip mb-2">
+            <span class="neo-chip-dot" style="background-color: var(--accent-amber);"></span>
+            <span>E-Commerce Saved Items</span>
+        </span>
+        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem);">My saved wishlist</h2>
+        <p class="text-secondary small mb-0">Textbooks saved for future semester reading and borrowing.</p>
+    </div>
+    <div class="btn-row">
+        <a href="{{ url_for('student_cart') }}" class="btn-neo-secondary small">
+            <i class="bi bi-cart3"></i> View Borrow Cart
+            {% if cart_count and cart_count > 0 %}
+                <span class="nav-badge">{{ cart_count }}</span>
+            {% endif %}
+        </a>
+        <a href="{{ url_for('student_books') }}" class="btn-neo-primary small">
+            <i class="bi bi-bookmark-plus"></i> Browse Catalog
+        </a>
+    </div>
+</div>
+
+{% if books %}
+    <div class="book-grid">
+        {% for book in books %}
+            <div class="neo-card neo-card-interactive" style="display: flex; flex-direction: column; height: 100%; margin-bottom: 0;">
+                <!-- Top Category & Stock Chips -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.85rem;">
+                    <span class="neo-chip">
+                        <span class="neo-chip-dot" style="background-color: var(--surface-dark);"></span>
+                        <span>{{ book.category }}</span>
+                    </span>
+
+                    {% if book.available_copies == 0 %}
+                        <span class="neo-chip neo-chip-out-of-stock" title="All copies borrowed">
+                            <span class="neo-chip-dot"></span>
+                            <span>Out of stock</span>
+                        </span>
+                    {% elif book.available_copies <= 2 %}
+                        <span class="neo-chip neo-chip-low-stock" title="Low stock alert">
+                            <span class="neo-chip-dot"></span>
+                            <span>Low stock ({{ book.available_copies }} left)</span>
+                        </span>
+                    {% else %}
+                        <span class="neo-chip neo-chip-available" title="Ready to borrow">
+                            <span class="neo-chip-dot"></span>
+                            <span>{{ book.available_copies }} available</span>
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- Star Rating -->
+                <div style="margin-bottom: 0.4rem;">
+                    <span class="star-rating-box">
+                        <span class="star-gold"><i class="bi bi-star-fill"></i></span>
+                        <strong style="color: var(--text-primary); font-size: 0.85rem;">{{ book.avg_rating or '5.0' }}</strong>
+                    </span>
+                </div>
+
+                <!-- Title & Author -->
+                <h4 style="font-size: 1.1rem; line-height: 1.35; margin-bottom: 0.35rem; overflow-wrap: anywhere;">
+                    <a href="{{ url_for('book_detail', book_id=book.id) }}" style="color: inherit; text-decoration: none;">
+                        {{ book.title }}
+                    </a>
+                </h4>
+                <p class="text-secondary small" style="margin-bottom: 1rem;">
+                    <i class="bi bi-pen me-1"></i> {{ book.author }}
+                </p>
+
+                <!-- Bottom Details & Actions -->
+                <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.6); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                    <div class="small text-secondary" style="min-width: 0;">
+                        <div><small>ISBN: <code>{{ book.isbn }}</code></small></div>
+                    </div>
+
+                    <div class="btn-row" style="gap: 0.4rem;">
+                        {% if book.available_copies > 0 %}
+                            <form action="{{ url_for('wishlist_move_to_cart', book_id=book.id) }}" method="POST" style="margin: 0;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn-neo-primary small" title="Move to borrow cart">
+                                    <i class="bi bi-cart-plus"></i> Move to Cart
+                                </button>
+                            </form>
+                        {% else %}
+                            <button class="btn-neo-secondary small" disabled style="opacity: 0.6; cursor: not-allowed;">
+                                Out of Stock
+                            </button>
+                        {% endif %}
+
+                        <form action="{{ url_for('toggle_wishlist', book_id=book.id) }}" method="POST" style="margin: 0;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="next" value="{{ url_for('student_wishlist') }}">
+                            <button type="submit" class="btn-neo-secondary small" title="Remove from wishlist" style="color: var(--accent-red);">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <!-- Empty Wishlist State -->
+    <div class="neo-card" style="text-align: center; padding: 3.5rem 1.5rem;">
+        <div class="neo-stat-icon-wrapper" style="width: 56px; height: 56px; margin: 0 auto 1.25rem auto; font-size: 1.75rem; color: var(--accent-amber);">
+            <i class="bi bi-heart"></i>
+        </div>
+        <h3 class="font-heading mb-2">No textbooks saved in wishlist</h3>
+        <p class="text-secondary small mb-4" style="max-width: 440px; margin: 0 auto 1.5rem auto;">
+            Save books for later while browsing the catalog by clicking the heart icon on any title.
+        </p>
+        <div>
+            <a href="{{ url_for('student_books') }}" class="btn-neo-primary">
+                <i class="bi bi-search"></i> Browse Catalog
+            </a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

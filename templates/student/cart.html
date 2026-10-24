@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block title %}Borrow Cart{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
+    <div>
+        <span class="neo-chip mb-2">
+            <span class="neo-chip-dot" style="background-color: var(--accent-blue);"></span>
+            <span>E-Commerce Loan Checkout</span>
+        </span>
+        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem);">My borrow cart</h2>
+        <p class="text-secondary small mb-0">Review textbook titles in your queue and confirm loan checkout.</p>
+    </div>
+    <div class="btn-row">
+        <a href="{{ url_for('student_books') }}" class="btn-neo-secondary small">
+            <i class="bi bi-bookmark-plus"></i> Browse more books
+        </a>
+        <a href="{{ url_for('student_wishlist') }}" class="btn-neo-secondary small">
+            <i class="bi bi-heart"></i> Saved wishlist
+        </a>
+    </div>
+</div>
+
+{% if cart_items %}
+    <div class="split-grid-2-1" style="gap: 1.75rem; align-items: start;">
+        <!-- Left: Cart Items Table -->
+        <div class="table-card" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.6);">
+                <h4 class="font-heading mb-0" style="font-size: 1.15rem;">
+                    <i class="bi bi-cart3 me-2"></i> Selected titles ({{ cart_items|length }})
+                </h4>
+                <span class="text-secondary small">Fixed 14-day borrowing</span>
+            </div>
+
+            <div class="table-scroll">
+                <table class="neo-table">
+                    <thead>
+                        <tr>
+                            <th>Book title &amp; Author</th>
+                            <th>Category</th>
+                            <th>Stock status</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cart_items %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">
+                                        <a href="{{ url_for('book_detail', book_id=item.id) }}" style="color: inherit; text-decoration: none;">
+                                            {{ item.title }}
+                                        </a>
+                                    </div>
+                                    <div class="text-secondary small">
+                                        <i class="bi bi-pen me-1"></i> {{ item.author }} &bull; ISBN: <code>{{ item.isbn }}</code>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="neo-chip small">
+                                        <span class="neo-chip-dot" style="background-color: var(--surface-dark);"></span>
+                                        <span>{{ item.category }}</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if item.available_copies > 0 %}
+                                        <span class="neo-chip neo-chip-available small">
+                                            <span class="neo-chip-dot"></span>
+                                            <span>{{ item.available_copies }} in stock</span>
+                                        </span>
+                                    {% else %}
+                                        <span class="neo-chip neo-chip-out-of-stock small">
+                                            <span class="neo-chip-dot"></span>
+                                            <span>Out of stock</span>
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    <form action="{{ url_for('remove_from_cart', book_id=item.id) }}" method="POST" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn-neo-secondary small" title="Remove from cart" style="color: var(--accent-red);">
+                                            <i class="bi bi-trash"></i> Remove
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right: Order Summary & Checkout Card -->
+        <div>
+            <div class="neo-card">
+                <h4 class="font-heading mb-3" style="font-size: 1.15rem;">Loan Order summary</h4>
+
+                <div class="neo-card-inset mb-3" style="padding: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.65rem;">
+                        <span class="text-secondary small">Total titles in queue:</span>
+                        <strong>{{ cart_items|length }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.65rem;">
+                        <span class="text-secondary small">Loan duration:</span>
+                        <strong>14 Days</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.65rem;">
+                        <span class="text-secondary small">Issuing desk:</span>
+                        <strong>Main Circulation Desk</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed rgba(0,0,0,0.15); padding-top: 0.65rem; margin-top: 0.65rem;">
+                        <span class="text-secondary small">Borrow fee:</span>
+                        <strong style="color: var(--accent-green);">FREE (College Library)</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 0.35rem;">
+                        <span class="text-secondary small">Late policy:</span>
+                        <span class="text-secondary small">Rs 5.00/day overdue</span>
+                    </div>
+                </div>
+
+                <form action="{{ url_for('cart_checkout') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn-neo-primary" style="width: 100%; justify-content: center; padding: 0.85rem;"
+                            onclick="return confirm('Confirm checkout for {{ cart_items|length }} textbook(s)?');">
+                        <i class="bi bi-check2-circle me-1"></i> Confirm &amp; Checkout Loans
+                    </button>
+                </form>
+
+                <p class="text-secondary small text-center mt-3 mb-0" style="font-size: 0.8rem;">
+                    <i class="bi bi-shield-check"></i> An Order ID will be generated for your physical book pickup.
+                </p>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <!-- Empty Cart State -->
+    <div class="neo-card" style="text-align: center; padding: 3.5rem 1.5rem;">
+        <div class="neo-stat-icon-wrapper" style="width: 56px; height: 56px; margin: 0 auto 1.25rem auto; font-size: 1.75rem; color: var(--accent-blue);">
+            <i class="bi bi-cart3"></i>
+        </div>
+        <h3 class="font-heading mb-2">Your borrow cart is empty</h3>
+        <p class="text-secondary small mb-4" style="max-width: 440px; margin: 0 auto 1.5rem auto;">
+            You have not added any textbooks to your checkout cart yet. Browse our college textbook catalog to borrow books for 14 days.
+        </p>
+        <div class="btn-row" style="justify-content: center;">
+            <a href="{{ url_for('student_books') }}" class="btn-neo-primary">
+                <i class="bi bi-search"></i> Browse Textbooks
+            </a>
+            <a href="{{ url_for('student_wishlist') }}" class="btn-neo-secondary small">
+                <i class="bi bi-heart"></i> View Saved Wishlist
+            </a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

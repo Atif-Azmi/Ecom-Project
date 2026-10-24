@@ -2,7 +2,7 @@
 {% block title %}Student Dashboard{% endblock %}
 
 {% block content %}
-<!-- Welcome & Action Header -->
+<!-- Welcome & Quick Action Header -->
 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
     <div>
         <span class="neo-chip mb-2">
@@ -10,14 +10,42 @@
             <span>Student account active</span>
         </span>
         <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem);">My loans dashboard</h2>
-        <p class="text-secondary small mb-0">Welcome, <strong>{{ session.get('full_name') }}</strong> ({{ session.get('username') }})</p>
+        <p class="text-secondary small mb-0">Welcome, <strong>{{ session.get('full_name') }}</strong> (<code>{{ session.get('username') }}</code>)</p>
     </div>
-    <div>
-        <a href="{{ url_for('student_books') }}" class="btn-neo-primary">
-            <i class="bi bi-bookmark-plus"></i> Browse &amp; borrow books
+    <div class="btn-row">
+        <a href="{{ url_for('student_cart') }}" class="btn-neo-secondary small">
+            <i class="bi bi-cart3"></i> Borrow Cart
+            {% if cart_count and cart_count > 0 %}
+                <span class="nav-badge">{{ cart_count }}</span>
+            {% endif %}
+        </a>
+        <a href="{{ url_for('student_wishlist') }}" class="btn-neo-secondary small">
+            <i class="bi bi-heart"></i> Wishlist
+            {% if wishlist_count and wishlist_count > 0 %}
+                <span class="nav-badge nav-badge-amber">{{ wishlist_count }}</span>
+            {% endif %}
+        </a>
+        <a href="{{ url_for('student_books') }}" class="btn-neo-primary small">
+            <i class="bi bi-bookmark-plus"></i> Browse catalog
         </a>
     </div>
 </div>
+
+<!-- Due Soon Notification Alert -->
+{% if due_soon_books %}
+    <div class="neo-alert neo-alert-warning mb-4" role="alert">
+        <div class="neo-alert-content">
+            <i class="bi bi-alarm-fill" style="color: var(--accent-amber); font-size: 1.25rem; flex-shrink: 0;"></i>
+            <div>
+                <strong>Due Date Alert:</strong> You have <strong>{{ due_soon_books|length }}</strong> textbook(s) due within the next 48 hours:
+                {% for b in due_soon_books %}
+                    <em>'{{ b.title }}' (Due: {{ b.due_date }})</em>{% if not loop.last %}, {% endif %}
+                {% endfor %}.
+                Please return them promptly to avoid late fee penalties.
+            </div>
+        </div>
+    </div>
+{% endif %}
 
 <!-- Neumorphic Widgets Grid: Date/Time Tile + Stat Tiles -->
 <div class="stat-grid-4">
@@ -41,7 +69,7 @@
         </div>
         <div>
             <div class="neo-stat-value">{{ stats.active_count }}</div>
-            <div class="small text-secondary">Books in possession</div>
+            <div class="small text-secondary">Books currently on loan</div>
         </div>
     </div>
 
@@ -62,7 +90,7 @@
     <!-- Accrued Late Fees Tile -->
     <div class="neo-stat-tile">
         <div class="neo-stat-header">
-            <span class="neo-stat-label">Accrued fees</span>
+            <span class="neo-stat-label">Unpaid fees</span>
             <div class="neo-stat-icon-wrapper" style="color: var(--accent-amber);">
                 <i class="bi bi-cash-stack"></i>
             </div>
@@ -73,6 +101,29 @@
         </div>
     </div>
 </div>
+
+<!-- Unpaid Fines & Demo Payment Action Box (if fines exist) -->
+{% if unpaid_fines %}
+    <div class="neo-card mb-4" style="border-left: 5px solid var(--accent-red); padding: 1.25rem 1.5rem;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+            <div>
+                <h4 class="font-heading mb-1" style="font-size: 1.15rem; color: var(--accent-red);">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Outstanding Late Fees Pending Payment
+                </h4>
+                <p class="text-secondary small mb-0">
+                    You have accrued library overdue fines. Clear your fee balance using the demo UPI / Card gateway to receive an official printable clearance receipt.
+                </p>
+            </div>
+            <div class="btn-row">
+                {% for f in unpaid_fines %}
+                    <a href="{{ url_for('pay_fine', record_id=f.id) }}" class="btn-neo-primary small" style="background-color: var(--accent-red); color: white;">
+                        <i class="bi bi-credit-card"></i> Pay Rs {{ "%.2f"|format(f.fine_amount) }} for '{{ f.title[:20] }}...'
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
 
 <!-- Currently Borrowed Books Section -->
 <div class="table-card">
@@ -88,6 +139,7 @@
             <table class="neo-table">
                 <thead>
                     <tr>
+                        <th>Order ID</th>
                         <th>Book title</th>
                         <th>Category</th>
                         <th>Issue date</th>
@@ -101,54 +153,89 @@
                     {% for item in active_borrows %}
                         <tr>
                             <td>
-                                <div class="fw-bold" style="overflow-wrap: anywhere;">{{ item.title }}</div>
+                                <strong style="font-family: monospace; font-size: 0.85rem; color: var(--accent-blue);">
+                                    {{ item.order_no or ('ORD-' ~ item.id) }}
+                                </strong>
+                            </td>
+                            <td>
+                                <div class="fw-bold" style="overflow-wrap: anywhere;">
+                                    <a href="{{ url_for('book_detail', book_id=item.book_id) }}" style="color: inherit; text-decoration: none;">
+                                        {{ item.title }}
+                                    </a>
+                                </div>
                                 <div class="text-secondary small">By {{ item.author }} &bull; ISBN: <code>{{ item.isbn }}</code></div>
                             </td>
                             <td>
-                                <span class="neo-chip">
+                                <span class="neo-chip small">
                                     <span class="neo-chip-dot" style="background-color: var(--surface-dark);"></span>
                                     <span>{{ item.category }}</span>
                                 </span>
                             </td>
-                            <td>{{ item.issue_date.strftime('%b %d, %Y') }}</td>
+                            <td>{{ item.issue_date.strftime('%b %d, %Y') if item.issue_date is not string else item.issue_date }}</td>
                             <td>
                                 <span class="fw-bold" style="{{ 'color: var(--accent-red);' if item.is_overdue else '' }}">
-                                    {{ item.due_date.strftime('%b %d, %Y') }}
+                                    {{ item.due_date.strftime('%b %d, %Y') if item.due_date is not string else item.due_date }}
                                 </span>
                             </td>
                             <td>
                                 {% if item.is_overdue %}
-                                    <span class="neo-chip neo-chip-overdue">
+                                    <span class="neo-chip neo-chip-overdue small">
                                         <span class="neo-chip-dot"></span>
-                                        <span>Overdue ({{ (item.days_remaining)|abs }} days late)</span>
+                                        <span>Overdue ({{ (item.days_remaining)|abs }}d late)</span>
                                     </span>
                                 {% elif item.days_remaining == 0 %}
-                                    <span class="neo-chip neo-chip-issued">
+                                    <span class="neo-chip neo-chip-issued small">
                                         <span class="neo-chip-dot"></span>
                                         <span>Due today!</span>
                                     </span>
-                                {% else %}
-                                    <span class="neo-chip neo-chip-borrowed">
+                                {% elif item.days_remaining <= 2 %}
+                                    <span class="neo-chip neo-chip-low-stock small">
                                         <span class="neo-chip-dot"></span>
-                                        <span>{{ item.days_remaining }} days remaining</span>
+                                        <span>Due in {{ item.days_remaining }}d</span>
+                                    </span>
+                                {% else %}
+                                    <span class="neo-chip neo-chip-borrowed small">
+                                        <span class="neo-chip-dot"></span>
+                                        <span>{{ item.days_remaining }}d left</span>
                                     </span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if item.current_fine > 0 %}
-                                    <span class="fw-bold" style="color: var(--accent-red);">Rs {{ "%.2f"|format(item.current_fine) }}</span>
+                                    <div class="fw-bold" style="color: {{ '#059669' if item.fine_paid else 'var(--accent-red)' }};">
+                                        Rs {{ "%.2f"|format(item.current_fine) }}
+                                    </div>
+                                    {% if item.fine_paid %}
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700; padding: 2px 7px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem;">
+                                            <i class="bi bi-check-circle-fill"></i> PAID
+                                        </span>
+                                        <a href="{{ url_for('student_receipt', record_id=item.id) }}" class="small d-block text-secondary mt-1" style="font-size: 0.75rem;">
+                                            <i class="bi bi-receipt"></i> Receipt
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('pay_fine', record_id=item.id) }}" class="btn-neo-primary small" style="font-size: 0.75rem; padding: 0.2rem 0.55rem; background-color: var(--accent-red); color: white; display: inline-flex; margin-top: 2px;">
+                                            Pay Fine
+                                        </a>
+                                    {% endif %}
                                 {% else %}
                                     <span class="text-secondary small">Rs 0.00</span>
                                 {% endif %}
                             </td>
                             <td style="text-align: right;">
-                                <form action="{{ url_for('student_return_book', record_id=item.id) }}" method="POST" style="display: inline;">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn-neo-secondary small"
-                                            onclick="return confirm('Return \'{{ item.title }}\' today?');">
-                                        <i class="bi bi-arrow-return-left"></i> Return book
-                                    </button>
-                                </form>
+                                <div class="btn-row" style="justify-content: flex-end; gap: 0.35rem;">
+                                    <form action="{{ url_for('student_return_book', record_id=item.id) }}" method="POST" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn-neo-secondary small"
+                                                onclick="return confirm('Return \'{{ item.title }}\' today?');">
+                                            <i class="bi bi-arrow-return-left"></i> Return
+                                        </button>
+                                    </form>
+                                    {% if item.fine_paid %}
+                                        <a href="{{ url_for('student_receipt', record_id=item.id) }}" class="btn-neo-secondary small" title="View receipt">
+                                            <i class="bi bi-receipt"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -163,9 +250,14 @@
             </div>
             <h4 class="font-heading mb-1" style="font-size: 1.2rem;">No active loans</h4>
             <p class="text-secondary small mb-3">You do not currently have any books checked out from the library.</p>
-            <a href="{{ url_for('student_books') }}" class="btn-neo-primary small">
-                <i class="bi bi-search"></i> Explore library catalog
-            </a>
+            <div class="btn-row" style="justify-content: center;">
+                <a href="{{ url_for('student_books') }}" class="btn-neo-primary small">
+                    <i class="bi bi-search"></i> Explore library catalog
+                </a>
+                <a href="{{ url_for('student_cart') }}" class="btn-neo-secondary small">
+                    <i class="bi bi-cart3"></i> View Cart
+                </a>
+            </div>
         </div>
     {% endif %}
 </div>

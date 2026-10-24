@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Manage Members - Admin{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
+    <div>
+        <span class="neo-chip mb-2">
+            <span class="neo-chip-dot" style="background-color: var(--surface-dark);"></span>
+            <span>ERP Student Directory</span>
+        </span>
+        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem);">Member management</h2>
+        <p class="text-secondary small mb-0">List of registered college students, their active textbook borrowings, and fine obligations.</p>
+    </div>
+    <div class="btn-row">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn-neo-secondary small">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Search Filter -->
+<div class="neo-card mb-4" style="padding: 1.25rem;">
+    <form action="{{ url_for('admin_members') }}" method="GET">
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <div class="neo-search-bar" style="flex: 1;">
+                <i class="bi bi-search text-secondary" style="flex-shrink: 0;"></i>
+                <input type="text" name="search" placeholder="Search by student name, roll number, or email..."
+                       value="{{ search }}" aria-label="Search members">
+            </div>
+            <button type="submit" class="btn-neo-primary" style="padding: 0.65rem 1.25rem;">Search</button>
+            {% if search %}
+                <a href="{{ url_for('admin_members') }}" class="btn-neo-secondary small" title="Reset">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Members Table -->
+<div class="table-card">
+    {% if members %}
+        <div class="table-scroll">
+            <table class="neo-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student Name &amp; Username</th>
+                        <th>Email</th>
+                        <th>Registration Date</th>
+                        <th>Active Loans</th>
+                        <th>Overdue Count</th>
+                        <th>Unpaid Fines</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in members %}
+                        <tr>
+                            <td class="text-secondary small">#{{ m.id }}</td>
+                            <td>
+                                <div class="fw-bold">{{ m.full_name }}</div>
+                                <div class="text-secondary small">Roll: <code>{{ m.username }}</code></div>
+                            </td>
+                            <td>{{ m.email }}</td>
+                            <td><small class="text-secondary">{{ m.created_at[:10] if m.created_at else '2026-10-24' }}</small></td>
+                            <td>
+                                {% if m.active_loans > 0 %}
+                                    <span class="neo-chip neo-chip-borrowed small">
+                                        <span class="neo-chip-dot"></span>
+                                        <span>{{ m.active_loans }} active</span>
+                                    </span>
+                                {% else %}
+                                    <span class="text-secondary small">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if m.overdue_loans > 0 %}
+                                    <span class="neo-chip neo-chip-overdue small">
+                                        <span class="neo-chip-dot"></span>
+                                        <span>{{ m.overdue_loans }} overdue</span>
+                                    </span>
+                                {% else %}
+                                    <span class="text-secondary small">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if m.unpaid_fines > 0 %}
+                                    <strong style="color: var(--accent-red);">Rs {{ "%.2f"|format(m.unpaid_fines) }}</strong>
+                                {% else %}
+                                    <span class="text-secondary small">Rs 0.00</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <a href="{{ url_for('admin_member_detail', user_id=m.id) }}" class="btn-neo-secondary small">
+                                    <i class="bi bi-eye"></i> View Loans
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 2.5rem 1rem;" class="text-secondary small">
+            No student members found matching search criteria.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

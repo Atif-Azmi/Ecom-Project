@@ -7,23 +7,29 @@
     <div>
         <span class="neo-chip mb-2">
             <span class="neo-chip-dot" style="background-color: var(--surface-dark);"></span>
-            <span>Administrator control center</span>
+            <span>ERP Administrator Control Center</span>
         </span>
-        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem);">Library overview &amp; metrics</h2>
-        <p class="text-secondary small mb-0">System metrics, book circulation statistics, and active student loan status.</p>
+        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem);">Library ERP overview &amp; metrics</h2>
+        <p class="text-secondary small mb-0">System metrics, textbook circulation, supplier procurement, and student member accounts.</p>
     </div>
-    <div class="btn-row">
+    <div class="btn-row" style="flex-wrap: wrap; gap: 0.5rem;">
         <a href="{{ url_for('admin_add_book') }}" class="btn-neo-primary">
-            <i class="bi bi-plus-lg"></i> Add new book
+            <i class="bi bi-plus-lg"></i> Add book
         </a>
-        <a href="{{ url_for('admin_issued_books') }}" class="btn-neo-secondary small">
-            <i class="bi bi-card-checklist"></i> Issued books
+        <a href="{{ url_for('admin_purchases') }}" class="btn-neo-secondary small">
+            <i class="bi bi-truck"></i> Purchases
+        </a>
+        <a href="{{ url_for('admin_members') }}" class="btn-neo-secondary small">
+            <i class="bi bi-people"></i> Members
+        </a>
+        <a href="{{ url_for('admin_reports') }}" class="btn-neo-secondary small">
+            <i class="bi bi-file-earmark-bar-graph"></i> Reports
         </a>
     </div>
 </div>
 
 <!-- Neumorphic Widgets Grid: Live Clock + Circular Dial + Top Stats -->
-<div class="stat-grid-3">
+<div class="stat-grid-3 mb-4">
     <!-- Live Clock & Date Widget Tile -->
     <div class="neo-clock-tile">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
@@ -43,7 +49,6 @@
         <div class="neo-dial-widget">
             <svg class="neo-dial-svg" viewBox="0 0 100 100">
                 <circle class="neo-dial-track" cx="50" cy="50" r="40"></circle>
-                <!-- circumference = 2 * PI * 40 = 251.32. Offset = 251.32 * (1 - percent/100) -->
                 <circle class="neo-dial-fill" cx="50" cy="50" r="40"
                         stroke-dasharray="251.32"
                         stroke-dashoffset="{{ 251.32 * (1 - (stats.utilization_percent / 100)) }}"></circle>
@@ -70,8 +75,9 @@
     </div>
 </div>
 
-<!-- Secondary Stats Grid (4 Cards) -->
-<div class="stat-grid-4">
+<!-- ERP Comprehensive KPI Summary Cards (8 Cards) -->
+<div class="stat-grid-4 mb-4">
+    <!-- Total Titles -->
     <div class="neo-stat-tile">
         <div class="neo-stat-header">
             <span class="neo-stat-label">Unique titles</span>
@@ -81,10 +87,11 @@
         </div>
         <div>
             <div class="neo-stat-value">{{ stats.total_titles }}</div>
-            <div class="small text-secondary">{{ stats.total_copies }} total copies</div>
+            <div class="small text-secondary">{{ stats.total_copies }} total copies cataloged</div>
         </div>
     </div>
 
+    <!-- Available Copies -->
     <div class="neo-stat-tile">
         <div class="neo-stat-header">
             <span class="neo-stat-label">Available copies</span>
@@ -94,75 +101,166 @@
         </div>
         <div>
             <div class="neo-stat-value" style="color: var(--accent-green);">{{ stats.available_copies }}</div>
-            <div class="small text-secondary">Ready to issue</div>
+            <div class="small text-secondary">Ready for instant issue</div>
         </div>
     </div>
 
+    <!-- Inventory Alert: Low Stock -->
     <div class="neo-stat-tile">
         <div class="neo-stat-header">
-            <span class="neo-stat-label">Students registered</span>
+            <span class="neo-stat-label">Low stock alert</span>
+            <div class="neo-stat-icon-wrapper" style="color: var(--accent-amber);">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+        </div>
+        <div>
+            <div class="neo-stat-value" style="color: {{ 'var(--accent-amber)' if stats.low_stock_count > 0 else 'var(--text-primary)' }};">
+                {{ stats.low_stock_count }}
+            </div>
+            <div class="small text-secondary">Titles with &le; 2 copies left</div>
+        </div>
+    </div>
+
+    <!-- Pending Purchase Orders -->
+    <div class="neo-stat-tile">
+        <div class="neo-stat-header">
+            <span class="neo-stat-label">Pending orders</span>
+            <div class="neo-stat-icon-wrapper" style="color: var(--accent-blue);">
+                <i class="bi bi-truck"></i>
+            </div>
+        </div>
+        <div>
+            <div class="neo-stat-value" style="color: var(--accent-blue);">{{ stats.pending_po_count }}</div>
+            <div class="small text-secondary">Supplier POs awaiting receipt</div>
+        </div>
+    </div>
+
+    <!-- Total Members -->
+    <div class="neo-stat-tile">
+        <div class="neo-stat-header">
+            <span class="neo-stat-label">Student members</span>
             <div class="neo-stat-icon-wrapper">
                 <i class="bi bi-people"></i>
             </div>
         </div>
         <div>
             <div class="neo-stat-value">{{ stats.total_members }}</div>
-            <div class="small text-secondary">Active members</div>
+            <div class="small text-secondary">Registered students</div>
         </div>
     </div>
 
+    <!-- Overdue Loans -->
+    <div class="neo-stat-tile">
+        <div class="neo-stat-header">
+            <span class="neo-stat-label">Overdue loans</span>
+            <div class="neo-stat-icon-wrapper" style="color: var(--accent-red);">
+                <i class="bi bi-alarm"></i>
+            </div>
+        </div>
+        <div>
+            <div class="neo-stat-value" style="color: var(--accent-red);">{{ stats.overdue_count }}</div>
+            <div class="small text-secondary">Requires return notice</div>
+        </div>
+    </div>
+
+    <!-- Fines Collected (Paid) -->
     <div class="neo-stat-tile">
         <div class="neo-stat-header">
             <span class="neo-stat-label">Fines collected</span>
+            <div class="neo-stat-icon-wrapper" style="color: var(--accent-green);">
+                <i class="bi bi-cash-coin"></i>
+            </div>
+        </div>
+        <div>
+            <div class="neo-stat-value" style="color: var(--accent-green);">Rs {{ "%.2f"|format(stats.total_fines_collected) }}</div>
+            <div class="small text-secondary">Settled late fees (Paid)</div>
+        </div>
+    </div>
+
+    <!-- Outstanding Fines -->
+    <div class="neo-stat-tile">
+        <div class="neo-stat-header">
+            <span class="neo-stat-label">Outstanding fines</span>
             <div class="neo-stat-icon-wrapper" style="color: var(--accent-red);">
                 <i class="bi bi-cash-stack"></i>
             </div>
         </div>
         <div>
-            <div class="neo-stat-value" style="color: var(--accent-red);">Rs {{ "%.2f"|format(stats.total_fines_collected) }}</div>
-            <div class="small text-secondary">Recorded late fines</div>
+            <div class="neo-stat-value" style="color: var(--accent-red);">Rs {{ "%.2f"|format(stats.outstanding_fines) }}</div>
+            <div class="small text-secondary">Unpaid accrued penalty</div>
         </div>
     </div>
 </div>
 
-<!-- Architecture & Recent Activity Split Grid -->
-<div class="split-grid-2-1" style="grid-template-columns: 1fr 2fr;">
-    <!-- AWS Architecture Info Widget -->
+<!-- Recent Procurement & Circulation Split Grid -->
+<div class="split-grid-2-1" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+    <!-- Recent Supplier Purchase Orders -->
     <div class="neo-card" style="margin-bottom: 0;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.6);">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.6);">
             <h4 class="font-heading mb-0" style="font-size: 1.05rem;">
-                <i class="bi bi-cloud-check me-2"></i> AWS 3-tier architecture
+                <i class="bi bi-truck me-2"></i> Supplier procurement orders
             </h4>
-        </div>
-
-        <p class="small text-secondary mb-3">
-            High-availability topology deployed across two Availability Zones:
-        </p>
-
-        <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.5rem;">
-            <div class="neo-card-inset" style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem;">
-                <span class="small"><i class="bi bi-diagram-3 me-2"></i>VPC CIDR</span>
-                <span class="neo-chip small">10.0.0.0/16</span>
-            </div>
-            <div class="neo-card-inset" style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem;">
-                <span class="small"><i class="bi bi-globe me-2"></i>Public Load Balancer</span>
-                <span class="neo-chip neo-chip-available small"><span class="neo-chip-dot"></span> Port 80</span>
-            </div>
-            <div class="neo-card-inset" style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem;">
-                <span class="small"><i class="bi bi-cpu me-2"></i>EC2 App Tier</span>
-                <span class="neo-chip small">Private Subnets</span>
-            </div>
-            <div class="neo-card-inset" style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem;">
-                <span class="small"><i class="bi bi-database me-2"></i>Amazon RDS MySQL</span>
-                <span class="neo-chip small">Multi-AZ Subnets</span>
-            </div>
-        </div>
-
-        <div>
-            <a href="{{ url_for('health_check') }}" target="_blank" class="btn-neo-secondary small w-100" style="justify-content: center;">
-                <i class="bi bi-activity"></i> Test /health endpoint
+            <a href="{{ url_for('admin_purchases') }}" class="btn-neo-secondary small">
+                Manage all POs
             </a>
         </div>
+
+        {% if recent_pos %}
+            <div class="table-scroll">
+                <table class="neo-table">
+                    <thead>
+                        <tr>
+                            <th>PO Number</th>
+                            <th>Book / Supplier</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for po in recent_pos %}
+                            <tr>
+                                <td>
+                                    <strong style="font-family: monospace; font-size: 0.85rem; color: var(--accent-blue);">
+                                        {{ po.po_number }}
+                                    </strong>
+                                </td>
+                                <td>
+                                    <div class="fw-bold" style="font-size: 0.9rem;">{{ po.book_title }}</div>
+                                    <div class="text-secondary small">{{ po.supplier_name }}</div>
+                                </td>
+                                <td>{{ po.copies_ordered }} copies</td>
+                                <td>
+                                    {% if po.status == 'Received' %}
+                                        <span class="neo-chip neo-chip-available small"><span class="neo-chip-dot"></span> Received</span>
+                                    {% elif po.status == 'Pending' %}
+                                        <span class="neo-chip neo-chip-low-stock small"><span class="neo-chip-dot"></span> Pending</span>
+                                    {% else %}
+                                        <span class="neo-chip small">{{ po.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    {% if po.status == 'Pending' %}
+                                        <form action="{{ url_for('admin_receive_purchase_order', po_id=po.id) }}" method="POST" style="margin: 0; display: inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn-neo-primary small" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" title="Mark received and auto-restock book stock">
+                                                <i class="bi bi-box-seam"></i> Receive
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-secondary small">Stocked</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 2rem 1rem;" class="text-secondary small">
+                No purchase orders recorded yet.
+            </div>
+        {% endif %}
     </div>
 
     <!-- Recent Activity Table -->
@@ -183,7 +281,6 @@
                         <tr>
                             <th>Student</th>
                             <th>Book title</th>
-                            <th>Issue date</th>
                             <th>Due date</th>
                             <th>Status</th>
                         </tr>
@@ -195,21 +292,19 @@
                                     <div class="fw-bold">{{ r.full_name }}</div>
                                     <div class="text-secondary small">@{{ r.username }}</div>
                                 </td>
-                                <td><div style="overflow-wrap: anywhere;">{{ r.title }}</div></td>
-                                <td><small>{{ r.issue_date.strftime('%b %d') }}</small></td>
+                                <td><div style="overflow-wrap: anywhere; font-size: 0.9rem;">{{ r.title }}</div></td>
                                 <td>
-                                    <small class="{{ 'fw-bold' if r.status == 'overdue' else '' }}"
-                                           style="{{ 'color: var(--accent-red);' if r.status == 'overdue' else '' }}">
-                                        {{ r.due_date.strftime('%b %d') }}
+                                    <small class="{{ 'fw-bold text-danger' if r.status == 'overdue' else '' }}">
+                                        {{ r.due_date.strftime('%b %d') if r.due_date is not string else r.due_date }}
                                     </small>
                                 </td>
                                 <td>
                                     {% if r.status == 'returned' %}
-                                        <span class="neo-chip neo-chip-returned"><span class="neo-chip-dot"></span> Returned</span>
+                                        <span class="neo-chip neo-chip-returned small"><span class="neo-chip-dot"></span> Returned</span>
                                     {% elif r.status == 'overdue' %}
-                                        <span class="neo-chip neo-chip-overdue"><span class="neo-chip-dot"></span> Overdue</span>
+                                        <span class="neo-chip neo-chip-overdue small"><span class="neo-chip-dot"></span> Overdue</span>
                                     {% else %}
-                                        <span class="neo-chip neo-chip-borrowed"><span class="neo-chip-dot"></span> Active</span>
+                                        <span class="neo-chip neo-chip-borrowed small"><span class="neo-chip-dot"></span> Active</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -218,7 +313,7 @@
                 </table>
             </div>
         {% else %}
-            <div style="text-align: center; padding: 2.5rem 1rem;" class="text-secondary small">
+            <div style="text-align: center; padding: 2rem 1rem;" class="text-secondary small">
                 No circulation activity recorded yet.
             </div>
         {% endif %}

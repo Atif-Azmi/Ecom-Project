@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}Supplier Purchase Orders - Admin{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
+    <div>
+        <span class="neo-chip mb-2">
+            <span class="neo-chip-dot" style="background-color: var(--accent-blue);"></span>
+            <span>ERP Supply Chain &amp; Procurement</span>
+        </span>
+        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem);">Supplier purchase orders</h2>
+        <p class="text-secondary small mb-0">Record textbook acquisition orders from publishers. When marked <strong>Received</strong>, stock increments automatically.</p>
+    </div>
+    <div class="btn-row">
+        <a href="#newOrderForm" class="btn-neo-primary">
+            <i class="bi bi-plus-lg"></i> Record Purchase Order
+        </a>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn-neo-secondary small">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Filter Pills -->
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem;">
+    <div class="neo-pills-container">
+        <a href="{{ url_for('admin_purchases', status='all') }}"
+           class="neo-pill-btn {{ 'active' if current_status == 'all' or not current_status }}">
+            All Orders ({{ orders|length }})
+        </a>
+        <a href="{{ url_for('admin_purchases', status='Pending') }}"
+           class="neo-pill-btn {{ 'active' if current_status == 'Pending' }}">
+            <i class="bi bi-hourglass-split me-1"></i> Pending Receipt
+        </a>
+        <a href="{{ url_for('admin_purchases', status='Received') }}"
+           class="neo-pill-btn {{ 'active' if current_status == 'Received' }}">
+            <i class="bi bi-check-circle me-1"></i> Received &amp; Stocked
+        </a>
+        <a href="{{ url_for('admin_purchases', status='Cancelled') }}"
+           class="neo-pill-btn {{ 'active' if current_status == 'Cancelled' }}">
+            Cancelled
+        </a>
+    </div>
+</div>
+
+<!-- Purchase Orders List Table -->
+<div class="table-card mb-4">
+    {% if orders %}
+        <div class="table-scroll">
+            <table class="neo-table">
+                <thead>
+                    <tr>
+                        <th>PO Number</th>
+                        <th>Supplier</th>
+                        <th>Book Title &amp; ISBN</th>
+                        <th>Quantity</th>
+                        <th>Total Cost</th>
+                        <th>Order Date</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for po in orders %}
+                        <tr>
+                            <td>
+                                <strong style="font-family: monospace; font-size: 0.85rem; color: var(--accent-blue);">
+                                    {{ po.po_number }}
+                                </strong>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ po.supplier_name }}</div>
+                                {% if po.notes %}<div class="text-secondary small fst-italic">{{ po.notes }}</div>{% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ po.book_title }}</div>
+                                <div class="text-secondary small">ISBN: <code>{{ po.isbn }}</code> &bull; Current Stock: {{ po.available_copies }}/{{ po.total_copies }}</div>
+                            </td>
+                            <td>
+                                <strong>{{ po.copies_ordered }} copies</strong>
+                                <div class="text-secondary small">@ Rs {{ "%.2f"|format(po.unit_cost) }} each</div>
+                            </td>
+                            <td>
+                                <strong style="color: var(--text-primary);">Rs {{ "%.2f"|format(po.total_cost) }}</strong>
+                            </td>
+                            <td>
+                                {{ po.order_date }}
+                                {% if po.received_date %}
+                                    <div class="small text-success"><i class="bi bi-box-seam me-1"></i>Rcvd: {{ po.received_date }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if po.status == 'Received' %}
+                                    <span class="neo-chip neo-chip-available small">
+                                        <span class="neo-chip-dot"></span> Received
+                                    </span>
+                                {% elif po.status == 'Pending' %}
+                                    <span class="neo-chip neo-chip-low-stock small">
+                                        <span class="neo-chip-dot"></span> Pending
+                                    </span>
+                                {% else %}
+                                    <span class="neo-chip small">{{ po.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="btn-row" style="justify-content: flex-end; gap: 0.35rem;">
+                                    {% if po.status == 'Pending' %}
+                                        <form action="{{ url_for('admin_receive_purchase_order', po_id=po.id) }}" method="POST" style="margin: 0; display: inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn-neo-primary small"
+                                                    onclick="return confirm('Mark PO {{ po.po_number }} as Received? This will automatically increase inventory by {{ po.copies_ordered }} copies.');"
+                                                    title="Mark received and auto-restock book stock">
+                                                <i class="bi bi-box-seam me-1"></i> Receive &amp; Restock
+                                            </button>
+                                        </form>
+                                        <form action="{{ url_for('admin_cancel_purchase_order', po_id=po.id) }}" method="POST" style="margin: 0; display: inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn-neo-secondary small" style="color: var(--accent-red);"
+                                                    onclick="return confirm('Cancel purchase order {{ po.po_number }}?');">
+                                                Cancel
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-secondary small">Completed</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 2.5rem 1rem;" class="text-secondary small">
+            No purchase orders found.
+        </div>
+    {% endif %}
+</div>
+
+<!-- New Purchase Order Form -->
+<div class="neo-card" id="newOrderForm" style="padding: 1.75rem;">
+    <div style="margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.6);">
+        <h4 class="font-heading mb-1" style="font-size: 1.2rem;">
+            <i class="bi bi-cart-plus me-2"></i> Record New Supplier Purchase Order
+        </h4>
+        <p class="text-secondary small mb-0">Order replacement or replenishment textbook copies from educational publishers.</p>
+    </div>
+
+    <form action="{{ url_for('admin_new_purchase_order') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label class="text-secondary small fw-bold mb-1" style="display: block;">Supplier / Publisher Name:</label>
+                <input type="text" name="supplier_name" class="neo-input" placeholder="e.g. Oxford Academic Publishing, Pearson India" required style="width: 100%; border-radius: 12px;">
+            </div>
+
+            <div>
+                <label class="text-secondary small fw-bold mb-1" style="display: block;">Textbook Title to Replenish:</label>
+                <select name="book_id" class="neo-select" required style="width: 100%;">
+                    <option value="" disabled selected>Select book from catalog...</option>
+                    {% for b in books %}
+                        <option value="{{ b.id }}">{{ b.title }} (Current Stock: {{ b.available_copies }}/{{ b.total_copies }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="text-secondary small fw-bold mb-1" style="display: block;">Copies to Order:</label>
+                <input type="number" name="copies_ordered" class="neo-input" min="1" max="100" value="5" required style="width: 100%; border-radius: 12px;">
+            </div>
+
+            <div>
+                <label class="text-secondary small fw-bold mb-1" style="display: block;">Unit Procurement Cost (INR):</label>
+                <input type="number" name="unit_cost" class="neo-input" step="0.5" min="0" value="650.00" required style="width: 100%; border-radius: 12px;">
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <label class="text-secondary small fw-bold mb-1" style="display: block;">Notes / Grant Allocation Reference:</label>
+            <input type="text" name="notes" class="neo-input" placeholder="e.g. Annual library grant restock for semester II exams" style="width: 100%; border-radius: 12px;">
+        </div>
+
+        <div class="btn-row">
+            <button type="submit" class="btn-neo-primary">
+                <i class="bi bi-check-lg me-1"></i> Place Purchase Order
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

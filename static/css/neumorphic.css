@@ -780,6 +780,16 @@ main {
   background-color: #991b1b;
 }
 
+.neo-chip-low-stock {
+  color: #b45309;
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.neo-chip-low-stock .neo-chip-dot {
+  background-color: var(--accent-amber);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
+}
+
 /* ==========================================================================
    Stat Widgets (Date/Time tile, Circular dial, Stat cards)
    ========================================================================== */
@@ -1032,5 +1042,76 @@ main {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   E-Commerce & ERP Specific Components (Badges, Stars, Printables)
+   ========================================================================== */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffffff;
+  background-color: var(--accent-blue);
+  box-shadow: 0 2px 5px rgba(59, 130, 246, 0.4);
+  margin-left: 0.35rem;
+}
+
+.nav-badge-amber {
+  background-color: var(--accent-amber);
+  box-shadow: 0 2px 5px rgba(245, 158, 11, 0.4);
+}
+
+.star-gold {
+  color: #f59e0b;
+}
+
+.star-empty {
+  color: #d1d5db;
+}
+
+.star-rating-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+/* Printable Invoice & Receipt Rules */
+@media print {
+  header.neo-navbar-wrapper,
+  footer.neo-footer,
+  .btn-print-hide,
+  .neo-nav-menu,
+  .neo-nav-toggle {
+    display: none !important;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  .neo-card,
+  .neo-card-interactive,
+  .neo-card-inset {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+    background: #ffffff !important;
+  }
+
+  .receipt-box {
+    border: 2px solid #1f2937 !important;
+    padding: 2rem !important;
+    max-width: 100% !important;
   }
 }

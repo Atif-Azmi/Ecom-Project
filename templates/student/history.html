@@ -4,10 +4,10 @@
 {% block content %}
 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
     <div>
-        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem);">Borrowing history</h2>
-        <p class="text-secondary small mb-0">Complete historical timeline of your textbook loans, due dates, and return records.</p>
+        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem);">Borrowing history &amp; orders</h2>
+        <p class="text-secondary small mb-0">Complete historical timeline of your textbook loans, Order IDs, and fee receipts.</p>
     </div>
-    <div>
+    <div class="btn-row">
         <a href="{{ url_for('student_dashboard') }}" class="btn-neo-secondary small">
             <i class="bi bi-speedometer2"></i> Back to dashboard
         </a>
@@ -20,60 +20,77 @@
             <table class="neo-table">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        <th>Order ID</th>
                         <th>Book title</th>
                         <th>Category</th>
                         <th>Issue date</th>
                         <th>Due date</th>
                         <th>Return date</th>
                         <th>Status</th>
-                        <th>Late fee</th>
+                        <th>Fine &amp; Receipt</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in history %}
                         <tr>
-                            <td class="text-secondary small">#{{ row.id }}</td>
                             <td>
-                                <div class="fw-bold" style="overflow-wrap: anywhere;">{{ row.title }}</div>
+                                <strong style="font-family: monospace; font-size: 0.85rem; color: var(--accent-blue);">
+                                    {{ row.order_no or ('ORD-' ~ row.id) }}
+                                </strong>
+                            </td>
+                            <td>
+                                <div class="fw-bold" style="overflow-wrap: anywhere;">
+                                    <a href="{{ url_for('book_detail', book_id=row.book_id) }}" style="color: inherit; text-decoration: none;">
+                                        {{ row.title }}
+                                    </a>
+                                </div>
                                 <div class="text-secondary small">By {{ row.author }} &bull; ISBN: <code>{{ row.isbn }}</code></div>
                             </td>
                             <td>
-                                <span class="neo-chip">
+                                <span class="neo-chip small">
                                     <span class="neo-chip-dot" style="background-color: var(--surface-dark);"></span>
                                     <span>{{ row.category }}</span>
                                 </span>
                             </td>
-                            <td>{{ row.issue_date.strftime('%b %d, %Y') }}</td>
-                            <td>{{ row.due_date.strftime('%b %d, %Y') }}</td>
+                            <td>{{ row.issue_date.strftime('%b %d, %Y') if row.issue_date is not string else row.issue_date }}</td>
+                            <td>{{ row.due_date.strftime('%b %d, %Y') if row.due_date is not string else row.due_date }}</td>
                             <td>
                                 {% if row.return_date %}
-                                    <span><i class="bi bi-check2 text-success me-1"></i>{{ row.return_date.strftime('%b %d, %Y') }}</span>
+                                    <span><i class="bi bi-check2 text-success me-1"></i>{{ row.return_date.strftime('%b %d, %Y') if row.return_date is not string else row.return_date }}</span>
                                 {% else %}
                                     <span class="text-secondary fst-italic">Currently on loan</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if row.status == 'returned' %}
-                                    <span class="neo-chip neo-chip-returned">
+                                    <span class="neo-chip neo-chip-returned small">
                                         <span class="neo-chip-dot"></span>
                                         <span>Returned</span>
                                     </span>
                                 {% elif row.status == 'overdue' %}
-                                    <span class="neo-chip neo-chip-overdue">
+                                    <span class="neo-chip neo-chip-overdue small">
                                         <span class="neo-chip-dot"></span>
                                         <span>Overdue</span>
                                     </span>
                                 {% else %}
-                                    <span class="neo-chip neo-chip-borrowed">
+                                    <span class="neo-chip neo-chip-borrowed small">
                                         <span class="neo-chip-dot"></span>
-                                        <span>Active loan</span>
+                                        <span>Issued</span>
                                     </span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if row.fine_amount > 0 %}
-                                    <span class="fw-bold" style="color: var(--accent-red);">Rs {{ "%.2f"|format(row.fine_amount) }}</span>
+                                    <div class="fw-bold" style="color: var(--accent-red);">Rs {{ "%.2f"|format(row.fine_amount) }}</div>
+                                    {% if row.fine_paid %}
+                                        <a href="{{ url_for('student_receipt', record_id=row.id) }}" class="btn-neo-secondary small" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: var(--accent-green);" title="Print payment receipt">
+                                            <i class="bi bi-receipt"></i> Receipt
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('pay_fine', record_id=row.id) }}" class="btn-neo-primary small" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" title="Pay fine">
+                                            Pay Fine
+                                        </a>
+                                    {% endif %}
                                 {% else %}
                                     <span class="text-secondary small">Rs 0.00</span>
                                 {% endif %}
@@ -89,7 +106,7 @@
                 <i class="bi bi-clock-history"></i>
             </div>
             <h4 class="font-heading mb-1" style="font-size: 1.25rem;">No borrowing history yet</h4>
-            <p class="text-secondary small mb-3">Your past book loans and return timestamps will appear here.</p>
+            <p class="text-secondary small mb-3">Your past book loans, orders, and payment receipts will appear here.</p>
             <a href="{{ url_for('student_books') }}" class="btn-neo-primary small">
                 <i class="bi bi-bookmark-plus"></i> Borrow your first book
             </a>

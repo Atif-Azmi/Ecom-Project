@@ -52,7 +52,7 @@
             <table class="neo-table">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        <th>Order / Loan</th>
                         <th>Student details</th>
                         <th>Book title</th>
                         <th>Issue date</th>
@@ -66,7 +66,12 @@
                 <tbody>
                     {% for r in records %}
                         <tr>
-                            <td class="text-secondary small">#{{ r.id }}</td>
+                            <td>
+                                <span class="badge" style="background: rgba(99, 102, 241, 0.12); color: var(--primary-accent); font-family: monospace; font-size: 0.78rem; padding: 0.25rem 0.5rem; border-radius: 6px; display: inline-block;">
+                                    {{ r.order_no or ('ORD-LN-' ~ r.id) }}
+                                </span>
+                                <div class="text-secondary small mt-1">Loan #{{ r.id }}</div>
+                            </td>
                             <td>
                                 <div class="fw-bold">{{ r.full_name }}</div>
                                 <div class="text-secondary small">@{{ r.username }} &bull; {{ r.email }}</div>
@@ -75,16 +80,16 @@
                                 <div class="fw-bold" style="overflow-wrap: anywhere;">{{ r.title }}</div>
                                 <div class="text-secondary small">ISBN: <code>{{ r.isbn }}</code></div>
                             </td>
-                            <td><small>{{ r.issue_date.strftime('%b %d, %Y') }}</small></td>
+                            <td><small>{{ r.issue_date.strftime('%b %d, %Y') if r.issue_date.strftime is defined else r.issue_date }}</small></td>
                             <td>
                                 <small class="{{ 'fw-bold' if r.status == 'overdue' else '' }}"
                                        style="{{ 'color: var(--accent-red);' if r.status == 'overdue' else '' }}">
-                                    {{ r.due_date.strftime('%b %d, %Y') }}
+                                    {{ r.due_date.strftime('%b %d, %Y') if r.due_date.strftime is defined else r.due_date }}
                                 </small>
                             </td>
                             <td>
                                 {% if r.return_date %}
-                                    <small><i class="bi bi-check2 text-success me-1"></i>{{ r.return_date.strftime('%b %d, %Y') }}</small>
+                                    <small><i class="bi bi-check2 text-success me-1"></i>{{ r.return_date.strftime('%b %d, %Y') if r.return_date.strftime is defined else r.return_date }}</small>
                                 {% else %}
                                     <small class="text-secondary fst-italic">Pending return</small>
                                 {% endif %}
@@ -100,7 +105,16 @@
                             </td>
                             <td>
                                 {% if r.fine_amount > 0 %}
-                                    <span class="fw-bold" style="color: var(--accent-red);">Rs {{ "%.2f"|format(r.fine_amount) }}</span>
+                                    <div class="fw-bold" style="color: var(--accent-red);">Rs {{ "%.2f"|format(r.fine_amount) }}</div>
+                                    {% if r.fine_paid %}
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.7rem; border-radius: 4px; padding: 2px 6px;">
+                                            <i class="bi bi-check-circle"></i> PAID ({{ r.payment_ref }})
+                                        </span>
+                                    {% else %}
+                                        <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #dc2626; font-size: 0.7rem; border-radius: 4px; padding: 2px 6px;">
+                                            UNPAID
+                                        </span>
+                                    {% endif %}
                                 {% else %}
                                     <span class="text-secondary small">Rs 0.00</span>
                                 {% endif %}

@@ -55,6 +55,22 @@
                                 </a>
                             </li>
                             <li>
+                                <a href="{{ url_for('student_cart') }}" class="neo-nav-link {{ 'active' if request.endpoint == 'student_cart' }}">
+                                    <i class="bi bi-cart3"></i> Cart
+                                    {% if cart_count and cart_count > 0 %}
+                                        <span class="nav-badge">{{ cart_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('student_wishlist') }}" class="neo-nav-link {{ 'active' if request.endpoint == 'student_wishlist' }}">
+                                    <i class="bi bi-heart"></i> Wishlist
+                                    {% if wishlist_count and wishlist_count > 0 %}
+                                        <span class="nav-badge nav-badge-amber">{{ wishlist_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            <li>
                                 <a href="{{ url_for('student_history') }}" class="neo-nav-link {{ 'active' if request.endpoint == 'student_history' }}">
                                     <i class="bi bi-clock-history"></i> History
                                 </a>
@@ -73,6 +89,21 @@
                             <li>
                                 <a href="{{ url_for('admin_issued_books') }}" class="neo-nav-link {{ 'active' if request.endpoint == 'admin_issued_books' }}">
                                     <i class="bi bi-card-checklist"></i> Issued books
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('admin_members') }}" class="neo-nav-link {{ 'active' if request.endpoint in ('admin_members', 'admin_member_detail') }}">
+                                    <i class="bi bi-people"></i> Members
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('admin_reports') }}" class="neo-nav-link {{ 'active' if request.endpoint == 'admin_reports' }}">
+                                    <i class="bi bi-file-earmark-bar-graph"></i> Reports
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('admin_purchases') }}" class="neo-nav-link {{ 'active' if request.endpoint == 'admin_purchases' }}">
+                                    <i class="bi bi-truck"></i> Purchases
                                 </a>
                             </li>
                         {% endif %}
@@ -101,6 +132,19 @@
             </nav>
         </div>
     </header>
+
+    <!-- Due Soon Reminder Alert for Students -->
+    {% if session.get('role') == 'student' and due_soon_count and due_soon_count > 0 %}
+        <div class="page-container" style="margin-top: 1rem;">
+            <div class="neo-alert neo-alert-warning" role="alert">
+                <div class="neo-alert-content">
+                    <i class="bi bi-bell-fill" style="color: var(--accent-amber); font-size: 1.15rem; flex-shrink: 0;"></i>
+                    <span><strong>Upcoming Due Date:</strong> You have <strong>{{ due_soon_count }}</strong> textbook loan(s) due within 48 hours. Please return them to avoid late fee penalties (Rs 5.00/day).</span>
+                </div>
+                <a href="{{ url_for('student_dashboard') }}" class="btn-neo-secondary small" style="margin-left: auto;">View Loans</a>
+            </div>
+        </div>
+    {% endif %}
 
     <!-- Flash Notifications Container -->
     <div class="page-container" style="margin-top: 1rem;">

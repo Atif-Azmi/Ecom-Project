@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% block title %}{{ book.title }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Header -->
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
+    <div>
+        <nav aria-label="Breadcrumb" style="margin-bottom: 0.5rem;">
+            <a href="{{ url_for('index') }}" class="text-secondary small" style="text-decoration: none;">
+                <i class="bi bi-arrow-left"></i> Back to Catalog
+            </a>
+            <span class="text-secondary small" style="margin: 0 0.4rem;">/</span>
+            <span class="text-secondary small">{{ book.category }}</span>
+        </nav>
+        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.85rem);">{{ book.title }}</h2>
+        <p class="text-secondary small mb-0"><i class="bi bi-pen me-1"></i> By <strong>{{ book.author }}</strong></p>
+    </div>
+    <div>
+        <a href="{{ url_for('index') }}" class="btn-neo-secondary small">
+            <i class="bi bi-grid-fill"></i> Catalog
+        </a>
+    </div>
+</div>
+
+<!-- Main Split Grid: Left Details & Right Reviews -->
+<div class="split-grid-2-1" style="gap: 1.75rem; align-items: start;">
+    <!-- Left Column: Textbook Specifications & E-Commerce Purchase Actions -->
+    <div>
+        <div class="neo-card mb-4">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 1.25rem;">
+                <span class="neo-chip">
+                    <span class="neo-chip-dot" style="background-color: var(--surface-dark);"></span>
+                    <span>{{ book.category }}</span>
+                </span>
+
+                <!-- Inventory & Low Stock Alert -->
+                {% if book.available_copies == 0 %}
+                    <span class="neo-chip neo-chip-out-of-stock" title="All copies borrowed">
+                        <span class="neo-chip-dot"></span>
+                        <span>Out of stock</span>
+                    </span>
+                {% elif book.available_copies <= 2 %}
+                    <span class="neo-chip neo-chip-low-stock" title="ERP Stock Alert: Reorder recommended">
+                        <span class="neo-chip-dot"></span>
+                        <span>Low stock ({{ book.available_copies }} copies left)</span>
+                    </span>
+                {% else %}
+                    <span class="neo-chip neo-chip-available" title="Ready to borrow">
+                        <span class="neo-chip-dot"></span>
+                        <span>{{ book.available_copies }} of {{ book.total_copies }} copies available</span>
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Key Details List -->
+            <div class="neo-card-inset mb-4">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                    <div>
+                        <span class="text-secondary small d-block">ISBN Standard Code</span>
+                        <strong style="font-family: monospace; font-size: 0.95rem;">{{ book.isbn }}</strong>
+                    </div>
+                    <div>
+                        <span class="text-secondary small d-block">Academic Subject</span>
+                        <strong>{{ book.category }}</strong>
+                    </div>
+                    <div>
+                        <span class="text-secondary small d-block">Catalog Total Copies</span>
+                        <strong>{{ book.total_copies }} copies</strong>
+                    </div>
+                    <div>
+                        <span class="text-secondary small d-block">Standard Loan Limit</span>
+                        <strong>14 Days (Rs 5.00/day fine)</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons for Student / Admin -->
+            <div class="btn-row" style="gap: 0.75rem;">
+                {% if session.get('role') == 'student' %}
+                    {% if is_borrowed %}
+                        <span class="neo-chip neo-chip-issued" style="padding: 0.6rem 1.25rem;">
+                            <span class="neo-chip-dot"></span>
+                            <span>Currently on loan to you</span>
+                        </span>
+                    {% elif is_in_cart %}
+                        <a href="{{ url_for('student_cart') }}" class="btn-neo-secondary">
+                            <i class="bi bi-cart-check-fill text-primary"></i> View in Cart
+                        </a>
+                    {% elif book.available_copies > 0 %}
+                        <form action="{{ url_for('add_to_cart', book_id=book.id) }}" method="POST" style="margin: 0;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="next" value="{{ request.full_path }}">
+                            <button type="submit" class="btn-neo-primary">
+                                <i class="bi bi-cart-plus"></i> Add to Borrow Cart
+                            </button>
+                        </form>
+                        <form action="{{ url_for('borrow_book', book_id=book.id) }}" method="POST" style="margin: 0;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-neo-secondary"
+                                    onclick="return confirm('Borrow \'{{ book.title }}\' immediately for 14 days?');">
+                                <i class="bi bi-lightning-charge"></i> Instant 1-Click Borrow
+                            </button>
+                        </form>
+                    {% else %}
+                        <button class="btn-neo-secondary" disabled style="opacity: 0.6; cursor: not-allowed;">
+                            <i class="bi bi-x-circle"></i> Currently Out of Stock
+                        </button>
+                    {% endif %}
+
+                    <!-- Wishlist Toggle -->
+                    <form action="{{ url_for('toggle_wishlist', book_id=book.id) }}" method="POST" style="margin: 0;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="next" value="{{ request.full_path }}">
+                        <button type="submit" class="btn-neo-secondary" title="Save for later">
+                            <i class="bi {{ 'bi-heart-fill text-danger' if is_in_wishlist else 'bi-heart' }}"></i>
+                            {{ 'Saved in Wishlist' if is_in_wishlist else 'Save for later' }}
+                        </button>
+                    </form>
+                {% elif session.get('role') == 'admin' %}
+                    <a href="{{ url_for('admin_edit_book', book_id=book.id) }}" class="btn-neo-primary">
+                        <i class="bi bi-pencil"></i> Edit Book Details &amp; Stock
+                    </a>
+                    <a href="{{ url_for('admin_purchases', status='all') }}" class="btn-neo-secondary">
+                        <i class="bi bi-truck"></i> Supplier Reorder
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn-neo-primary">
+                        <i class="bi bi-box-arrow-in-right"></i> Sign in to Borrow
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Academic Description Card -->
+        <div class="neo-card">
+            <h4 class="font-heading mb-2" style="font-size: 1.15rem;">About this textbook</h4>
+            <p class="text-secondary" style="font-size: 0.95rem; line-height: 1.7; margin-bottom: 0;">
+                This title is recommended for semester coursework in <strong>{{ book.category }}</strong>.
+                Students enrolled in college computer science and information technology programs can borrow physical copies
+                from the campus library stack. Circulation rules: standard borrowing duration is 14 calendar days, with automatic late fee computation of Rs 5.00 per day after the due date.
+            </p>
+        </div>
+    </div>
+
+    <!-- Right Column: Ratings & Student Reviews -->
+    <div>
+        <!-- Review Summary Tile -->
+        <div class="neo-card mb-4">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                <h4 class="font-heading mb-0" style="font-size: 1.15rem;">Reviews &amp; Ratings</h4>
+                <div class="star-rating-box">
+                    <span class="star-gold" style="font-size: 1.15rem;"><i class="bi bi-star-fill"></i></span>
+                    <strong style="font-size: 1.1rem;">{{ book.avg_rating or '5.0' }}</strong>
+                    <span class="text-secondary small">/ 5.0</span>
+                </div>
+            </div>
+
+            <p class="text-secondary small mb-3">
+                Based on <strong>{{ reviews|length }}</strong> student review{{ 's' if reviews|length != 1 else '' }}.
+            </p>
+
+            <!-- Write Review Form (for logged in students) -->
+            {% if session.get('role') == 'student' %}
+                <div class="neo-card-inset mb-4" style="padding: 1.25rem;">
+                    <h5 class="font-heading mb-2" style="font-size: 0.95rem;">Rate &amp; review this book</h5>
+                    <form action="{{ url_for('submit_review', book_id=book.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div style="margin-bottom: 0.85rem;">
+                            <label class="text-secondary small fw-bold mb-1" style="display: block;">Your Rating (1 to 5 Stars):</label>
+                            <select name="rating" class="neo-select" style="max-width: 180px;" required>
+                                <option value="5" selected>★★★★★ 5 - Excellent</option>
+                                <option value="4">★★★★☆ 4 - Good</option>
+                                <option value="3">★★★☆☆ 3 - Average</option>
+                                <option value="2">★★☆☆☆ 2 - Fair</option>
+                                <option value="1">★☆☆☆☆ 1 - Poor</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 0.85rem;">
+                            <label class="text-secondary small fw-bold mb-1" style="display: block;">Your Feedback / Review:</label>
+                            <textarea name="comment" class="neo-input" rows="3"
+                                      placeholder="Share your thoughts about this textbook for fellow students..."
+                                      style="border-radius: 14px; width: 100%;" required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-neo-primary small">
+                            <i class="bi bi-send"></i> Post Review
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+
+            <!-- Review Items List -->
+            {% if reviews %}
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    {% for rev in reviews %}
+                        <div class="neo-card-inset" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                                <strong>{{ rev.full_name }}</strong>
+                                <span class="star-gold">
+                                    {% for i in range(rev.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}
+                                    {% for i in range(5 - rev.rating) %}<i class="bi bi-star star-empty"></i>{% endfor %}
+                                </span>
+                            </div>
+                            <p class="text-secondary small mb-1" style="font-style: italic;">
+                                "{{ rev.comment }}"
+                            </p>
+                            <span class="text-secondary" style="font-size: 0.75rem;">
+                                Posted {{ rev.created_at[:10] if rev.created_at else 'recently' }}
+                            </span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-secondary small mb-0">No student reviews yet. Be the first to rate this title!</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

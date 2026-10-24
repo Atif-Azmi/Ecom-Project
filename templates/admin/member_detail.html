@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}Member: {{ member.full_name }} - Admin{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
+    <div>
+        <nav aria-label="Breadcrumb" style="margin-bottom: 0.5rem;">
+            <a href="{{ url_for('admin_members') }}" class="text-secondary small" style="text-decoration: none;">
+                <i class="bi bi-arrow-left"></i> Back to Members
+            </a>
+            <span class="text-secondary small" style="margin: 0 0.4rem;">/</span>
+            <span class="text-secondary small">{{ member.full_name }}</span>
+        </nav>
+        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem);">{{ member.full_name }}</h2>
+        <p class="text-secondary small mb-0">Roll / Username: <code>{{ member.username }}</code> &bull; Email: {{ member.email }}</p>
+    </div>
+    <div class="btn-row">
+        <a href="{{ url_for('admin_members') }}" class="btn-neo-secondary small">
+            <i class="bi bi-people"></i> All Members
+        </a>
+    </div>
+</div>
+
+<!-- Member Stats Overview Cards -->
+<div class="stat-grid-3 mb-4">
+    <div class="neo-stat-tile">
+        <div class="neo-stat-header">
+            <span class="neo-stat-label">Total Loans Issued</span>
+            <div class="neo-stat-icon-wrapper"><i class="bi bi-book"></i></div>
+        </div>
+        <div>
+            <div class="neo-stat-value">{{ loans|length }}</div>
+            <div class="small text-secondary">Historical borrow records</div>
+        </div>
+    </div>
+
+    <div class="neo-stat-tile">
+        <div class="neo-stat-header">
+            <span class="neo-stat-label">Currently Active</span>
+            <div class="neo-stat-icon-wrapper" style="color: var(--accent-amber);"><i class="bi bi-bookmark"></i></div>
+        </div>
+        <div>
+            {% set active_cnt = loans|selectattr('return_date', 'none')|list|length %}
+            <div class="neo-stat-value" style="color: var(--accent-amber);">{{ active_cnt }}</div>
+            <div class="small text-secondary">Books in student possession</div>
+        </div>
+    </div>
+
+    <div class="neo-stat-tile">
+        <div class="neo-stat-header">
+            <span class="neo-stat-label">Account Role</span>
+            <div class="neo-stat-icon-wrapper" style="color: var(--accent-green);"><i class="bi bi-person-badge"></i></div>
+        </div>
+        <div>
+            <div class="neo-stat-value" style="color: var(--accent-green); text-transform: capitalize;">{{ member.role }}</div>
+            <div class="small text-secondary">Member since {{ member.created_at[:10] if member.created_at else '2026-10-24' }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Loans Table -->
+<div class="table-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.6);">
+        <h4 class="font-heading mb-0" style="font-size: 1.15rem;">
+            <i class="bi bi-journal-text me-2"></i> Borrowing history for {{ member.full_name }}
+        </h4>
+        <span class="text-secondary small">{{ loans|length }} record(s)</span>
+    </div>
+
+    {% if loans %}
+        <div class="table-scroll">
+            <table class="neo-table">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Book Title</th>
+                        <th>Category</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Return Date</th>
+                        <th>Status</th>
+                        <th>Fine</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in loans %}
+                        <tr>
+                            <td>
+                                <strong style="font-family: monospace; font-size: 0.85rem; color: var(--accent-blue);">
+                                    {{ l.order_no or ('ORD-' ~ l.id) }}
+                                </strong>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ l.title }}</div>
+                                <div class="text-secondary small">ISBN: <code>{{ l.isbn }}</code></div>
+                            </td>
+                            <td>
+                                <span class="neo-chip small">
+                                    <span class="neo-chip-dot" style="background-color: var(--surface-dark);"></span>
+                                    <span>{{ l.category }}</span>
+                                </span>
+                            </td>
+                            <td>{{ l.issue_date.strftime('%b %d, %Y') if l.issue_date is not string else l.issue_date }}</td>
+                            <td>{{ l.due_date.strftime('%b %d, %Y') if l.due_date is not string else l.due_date }}</td>
+                            <td>
+                                {% if l.return_date %}
+                                    <span><i class="bi bi-check2 text-success me-1"></i>{{ l.return_date.strftime('%b %d, %Y') if l.return_date is not string else l.return_date }}</span>
+                                {% else %}
+                                    <span class="text-secondary fst-italic">Out on loan</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if l.status == 'returned' %}
+                                    <span class="neo-chip neo-chip-returned small"><span class="neo-chip-dot"></span> Returned</span>
+                                {% elif l.status == 'overdue' %}
+                                    <span class="neo-chip neo-chip-overdue small"><span class="neo-chip-dot"></span> Overdue</span>
+                                {% else %}
+                                    <span class="neo-chip neo-chip-borrowed small"><span class="neo-chip-dot"></span> Active</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if l.fine_amount > 0 %}
+                                    <div class="fw-bold" style="color: var(--accent-red);">Rs {{ "%.2f"|format(l.fine_amount) }}</div>
+                                    {% if l.fine_paid %}
+                                        <span class="badge bg-success small text-success">PAID</span>
+                                    {% else %}
+                                        <span class="badge bg-danger small text-danger">UNPAID</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-secondary small">Rs 0.00</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="btn-row" style="justify-content: flex-end; gap: 0.35rem;">
+                                    {% if l.return_date is none %}
+                                        <form action="{{ url_for('admin_mark_returned', record_id=l.id) }}" method="POST" style="margin: 0; display: inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn-neo-secondary small" title="Check in book to library">
+                                                <i class="bi bi-box-arrow-in-down"></i> Return
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    {% if l.fine_paid %}
+                                        <a href="{{ url_for('student_receipt', record_id=l.id) }}" class="btn-neo-secondary small" title="View fine payment receipt">
+                                            <i class="bi bi-receipt"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 2rem 1rem;" class="text-secondary small">
+            This student has not borrowed any books yet.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% block title %}Pay Overdue Fine{% endblock %}
+
+{% block content %}
+<div style="max-width: 680px; margin: 0 auto;">
+    <div style="margin-bottom: 1.5rem;">
+        <a href="{{ url_for('student_dashboard') }}" class="text-secondary small" style="text-decoration: none;">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+        <h2 class="font-heading mb-1" style="font-size: clamp(1.3rem, 3vw, 1.75rem); margin-top: 0.5rem;">
+            Pay overdue fine
+        </h2>
+        <p class="text-secondary small mb-0">Demo payment gateway for college library late return fees.</p>
+    </div>
+
+    <!-- Fine Calculation Breakdown -->
+    <div class="neo-card mb-4" style="padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+            <div>
+                <span class="neo-chip neo-chip-overdue small mb-1">
+                    <span class="neo-chip-dot"></span> Overdue Fine Incurred
+                </span>
+                <h4 class="font-heading mb-0" style="font-size: 1.15rem;">{{ record.title }}</h4>
+                <div class="text-secondary small"><i class="bi bi-pen me-1"></i> {{ record.author }} &bull; ISBN: <code>{{ record.isbn }}</code></div>
+            </div>
+            <div style="text-align: right;">
+                <span class="text-secondary small d-block">Amount Due</span>
+                <span class="font-heading text-danger" style="font-size: 1.5rem; color: var(--accent-red);">
+                    Rs {{ "%.2f"|format(fine) }}
+                </span>
+            </div>
+        </div>
+
+        <div class="neo-card-inset" style="padding: 1rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;" class="small">
+                <span class="text-secondary">Issue Date:</span>
+                <strong>{{ record.issue_date }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;" class="small">
+                <span class="text-secondary">Official Due Date:</span>
+                <strong>{{ record.due_date }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;" class="small">
+                <span class="text-secondary">Fee Rate Policy:</span>
+                <strong>Rs 5.00 per day</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-top: 1px dashed rgba(0,0,0,0.15); padding-top: 0.4rem; margin-top: 0.4rem;" class="small">
+                <span class="text-secondary">Order Reference:</span>
+                <strong>{{ record.order_no or 'ORD-DEMO' }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Gateway Form (Demo UPI / Card) -->
+    <div class="neo-card" style="padding: 1.75rem;">
+        <h4 class="font-heading mb-3" style="font-size: 1.15rem;">Select Payment Method</h4>
+
+        <form action="{{ url_for('pay_fine', record_id=record.id) }}" method="POST" id="paymentForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Method Selection Tabs -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+                <label class="neo-card-inset" style="padding: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 16px;">
+                    <input type="radio" name="payment_method" value="UPI" checked onclick="togglePaymentMethod('upi')">
+                    <div>
+                        <strong class="d-block" style="font-size: 0.9rem;"><i class="bi bi-qr-code-scan text-primary me-1"></i> UPI Transfer</strong>
+                        <small class="text-secondary">GPay, PhonePe, Paytm</small>
+                    </div>
+                </label>
+
+                <label class="neo-card-inset" style="padding: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 16px;">
+                    <input type="radio" name="payment_method" value="Debit/Credit Card" onclick="togglePaymentMethod('card')">
+                    <div>
+                        <strong class="d-block" style="font-size: 0.9rem;"><i class="bi bi-credit-card text-success me-1"></i> Card (Test)</strong>
+                        <small class="text-secondary">Visa, MasterCard, RuPay</small>
+                    </div>
+                </label>
+            </div>
+
+            <!-- UPI Inputs -->
+            <div id="upiSection" style="margin-bottom: 1.25rem;">
+                <!-- GPay Verified Payee Card -->
+                <div class="neo-card-inset mb-3" style="padding: 0.9rem 1rem; border-radius: 14px; background: rgba(99, 102, 241, 0.04); border: 1px solid rgba(99, 102, 241, 0.15);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 42px; height: 42px; border-radius: 12px; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.08); font-size: 1.25rem; color: #4285F4;">
+                                <i class="bi bi-google"></i>
+                            </div>
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <strong style="font-size: 0.95rem;">Atif Azmi (Library ERP)</strong>
+                                    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.68rem; padding: 2px 6px; border-radius: 4px;">
+                                        <i class="bi bi-patch-check-fill"></i> Verified
+                                    </span>
+                                </div>
+                                <div class="text-secondary small font-monospace">atifazmi2005@oksbi</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="badge" style="background: rgba(59, 130, 246, 0.12); color: #2563eb; font-size: 0.72rem; padding: 4px 8px; border-radius: 6px;">
+                                SBI UPI
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="text-secondary small fw-bold mb-1" style="display: block;">UPI ID / VPA:</label>
+                <input type="text" name="upi_id" id="upi_id" class="neo-input"
+                       placeholder="e.g. atifazmi2005@oksbi"
+                       value="atifazmi2005@oksbi" style="width: 100%; border-radius: 12px; margin-bottom: 0.5rem; font-family: monospace;">
+                <div class="btn-row" style="gap: 0.4rem; flex-wrap: wrap;">
+                    <button type="button" class="btn-neo-secondary small" style="font-size: 0.78rem; padding: 0.25rem 0.65rem; border-color: rgba(66, 133, 244, 0.5);" onclick="document.getElementById('upi_id').value='atifazmi2005@oksbi'">
+                        <i class="bi bi-google me-1" style="color: #4285F4;"></i> Google Pay (atifazmi2005@oksbi)
+                    </button>
+                    <button type="button" class="btn-neo-secondary small" style="font-size: 0.78rem; padding: 0.25rem 0.65rem;" onclick="document.getElementById('upi_id').value='atifazmi2005@ybl'">
+                        <i class="bi bi-phone me-1" style="color: #5f259f;"></i> PhonePe
+                    </button>
+                    <button type="button" class="btn-neo-secondary small" style="font-size: 0.78rem; padding: 0.25rem 0.65rem;" onclick="document.getElementById('upi_id').value='atifazmi2005@paytm'">
+                        <i class="bi bi-wallet2 me-1" style="color: #00b9f5;"></i> Paytm
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card Inputs (Hidden by default) -->
+            <div id="cardSection" style="display: none; margin-bottom: 1.25rem;">
+                <div style="margin-bottom: 0.75rem;">
+                    <label class="text-secondary small fw-bold mb-1" style="display: block;">Card Number (Demo):</label>
+                    <input type="text" name="card_number" class="neo-input" placeholder="4242 4242 4242 4242"
+                           value="4242 4242 4242 4242" style="width: 100%; border-radius: 12px;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div>
+                        <label class="text-secondary small fw-bold mb-1" style="display: block;">Expiry:</label>
+                        <input type="text" name="card_expiry" class="neo-input" placeholder="MM/YY" value="12/28" style="width: 100%; border-radius: 12px;">
+                    </div>
+                    <div>
+                        <label class="text-secondary small fw-bold mb-1" style="display: block;">CVV:</label>
+                        <input type="password" name="card_cvv" class="neo-input" placeholder="•••" value="123" style="width: 100%; border-radius: 12px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn-neo-primary" style="width: 100%; justify-content: center; padding: 0.85rem; font-size: 1rem;">
+                <i class="bi bi-shield-check me-2"></i> Pay Rs {{ "%.2f"|format(fine) }} (Generate Receipt)
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1rem;">
+            <small class="text-secondary">
+                <i class="bi bi-info-circle me-1"></i> Simulated payment gateway for college ERP course demo. A printable official receipt will be generated instantly.
+            </small>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePaymentMethod(method) {
+    var upi = document.getElementById('upiSection');
+    var card = document.getElementById('cardSection');
+    if (method === 'upi') {
+        upi.style.display = 'block';
+        card.style.display = 'none';
+    } else {
+        upi.style.display = 'none';
+        card.style.display = 'block';
+    }
+}
+</script>
+{% endblock %}
